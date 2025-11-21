@@ -1,0 +1,382 @@
+openapi: 3.0.3
+info:
+  title: Flight Ticket Booking System API
+  description: >
+    API specification for the Flight Ticket Booking System.
+    Routes traffic via an API Gateway to User, Flight, Booking, and Notification microservices.
+  version: 1.0.0
+
+
+paths:
+  # ----------------------------
+  # AUTHENTICATION & USER MANAGEMENT
+  # ----------------------------
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user: { $ref: '#/components/schemas/UserResponse' }
+
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Users]
+      summary: Get user profile details
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+    put:
+      tags: [Users]
+      summary: Update user profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+    delete:
+      tags: [Users]
+      summary: Delete user account
+      responses:
+        '204':
+          description: User deleted
+
+  # ----------------------------
+  # FLIGHT MANAGEMENT
+  # ----------------------------
+  /locations:
+    get:
+      tags: [Flights]
+      summary: List all airport locations
+      responses:
+        '200':
+          description: List of locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Location'
+
+  /flights:
+    get:
+      tags: [Flights]
+      summary: Search for available flights
+      parameters:
+        - name: from
+          in: query
+          description: Departure Location ID
+          schema: { type: string, format: uuid }
+        - name: to
+          in: query
+          description: Arrival Location ID
+          schema: { type: string, format: uuid }
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FlightResponse'
+    post:
+      tags: [Flights]
+      summary: (Admin) Create a new flight schedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlightCreateRequest'
+      responses:
+        '201':
+          description: Flight created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightResponse'
+
+  /flights/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Flights]
+      summary: Get flight details
+      responses:
+        '200':
+          description: Flight details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightResponse'
+    put:
+      tags: [Flights]
+      summary: (Admin) Update flight details
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlightCreateRequest'
+      responses:
+        '200':
+          description: Flight updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightResponse'
+    delete:
+      tags: [Flights]
+      summary: (Admin) Cancel/Remove a flight
+      responses:
+        '204':
+          description: Flight removed
+
+  # ----------------------------
+  # BOOKING MANAGEMENT
+  # ----------------------------
+  /bookings:
+    post:
+      tags: [Bookings]
+      summary: Create a permanent booking
+      description: Synchronously reserves seats. Returns error if full.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingRequest'
+      responses:
+        '201':
+          description: Booking Confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '409':
+          description: Flight fully booked or unavailable
+
+  /bookings/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Bookings]
+      summary: Get booking details
+      responses:
+        '200':
+          description: Booking found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+    delete:
+      tags: [Bookings]
+      summary: Cancel a booking
+      responses:
+        '200':
+          description: Booking cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: "CANCELLED" }
+
+  /bookings/user/{uid}:
+    parameters:
+      - name: uid
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Bookings]
+      summary: Retrieve booking history for a user
+      responses:
+        '200':
+          description: User booking history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookingResponse'
+
+  # ----------------------------
+  # NOTIFICATIONS
+  # ----------------------------
+  /notifications/{uid}:
+    parameters:
+      - name: uid
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Notifications]
+      summary: View notification history for a user
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+
+  /notifications/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [Notifications]
+      summary: Dismiss/Delete a notification
+      responses:
+        '204':
+          description: Notification deleted
+
+# ----------------------------
+# DATA MODELS (SCHEMAS)
+# ----------------------------
+components:
+  schemas:
+    # User Schemas
+    UserRegistration:
+      type: object
+      required: [full_name, email, password]
+      properties:
+        full_name: { type: string, example: "John Doe" }
+        email: { type: string, format: email, example: "john@example.com" }
+        password: { type: string, format: password, example: "securePass123" }
+    
+    UserResponse:
+      type: object
+      properties:
+        user_id: { type: string, format: uuid }
+        full_name: { type: string }
+        email: { type: string, format: email }
+        created_at: { type: string, format: date-time }
+
+    # Flight Schemas
+    Location:
+      type: object
+      properties:
+        location_id: { type: string, format: uuid }
+        name: { type: string, example: "Addis Ababa" }
+        airport_code: { type: string, example: "ADD" }
+
+    FlightCreateRequest:
+      type: object
+      required: [flight_number, departure_location_id, arrival_location_id, departure_time, total_seats]
+      properties:
+        flight_number: { type: string, example: "ET-500" }
+        departure_location_id: { type: string, format: uuid }
+        arrival_location_id: { type: string, format: uuid }
+        departure_time: { type: string, format: date-time }
+        arrival_time: { type: string, format: date-time }
+        total_seats: { type: integer, example: 150 }
+
+    FlightResponse:
+      allOf:
+        - $ref: '#/components/schemas/FlightCreateRequest'
+        - type: object
+          properties:
+            flight_id: { type: string, format: uuid }
+            available_seats: { type: integer }
+
+    # Booking Schemas
+    BookingRequest:
+      type: object
+      required: [user_id, flight_id, passengers]
+      properties:
+        user_id: { type: string, format: uuid }
+        flight_id: { type: string, format: uuid }
+        passengers:
+          type: array
+          items:
+            type: object
+            properties:
+              full_name: { type: string }
+              email: { type: string }
+
+    BookingResponse:
+      type: object
+      properties:
+        booking_id: { type: string, format: uuid }
+        flight_id: { type: string, format: uuid }
+        status: { type: string, enum: [CONFIRMED, CANCELLED] }
+        passenger_count: { type: integer }
+        created_at: { type: string, format: date-time }
+
+    # Notification Schemas
+    Notification:
+      type: object
+      properties:
+        notification_id: { type: string, format: uuid }
+        type: { type: string, enum: [BOOKING_CONFIRMATION, BOOKING_CANCELLATION] }
+        message: { type: string }
+        sent_at: { type: string, format: date-time }
