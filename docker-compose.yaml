@@ -1,0 +1,196 @@
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # INFRASTRUCTURE: REVERSE PROXY / API GATEWAY (TRAEFIK)
+  # ---------------------------------------------------------------------------
+  traefik:
+    image: traefik:v2.9
+    container_name: api_gateway
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "801:80"       # The API Gateway Endpoint
+      - "8081:8080"   # The Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - airlines-net
+
+  # ---------------------------------------------------------------------------
+  # INFRASTRUCTURE: MESSAGE BROKER (RABBITMQ)
+  # ---------------------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: message_broker
+    ports:
+      - "5672:5672"   # Message port
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - airlines-net
+
+  # ---------------------------------------------------------------------------
+  # DATABASES
+  # ---------------------------------------------------------------------------
+  postgres_user:
+    image: postgres:15-alpine
+    container_name: db_user_service
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: user_admin
+      POSTGRES_PASSWORD: password123
+    volumes:
+      - pg_user_data:/var/lib/postgresql/data
+    networks:
+      - airlines-net
+
+  postgres_flight:
+    image: postgres:15-alpine
+    container_name: db_flight_service
+    environment:
+      POSTGRES_DB: flight_db
+      POSTGRES_USER: flight_admin
+      POSTGRES_PASSWORD: password123
+    volumes:
+      - pg_flight_data:/var/lib/postgresql/data
+    networks:
+      - airlines-net
+
+  postgres_booking:
+    image: postgres:15-alpine
+    container_name: db_booking_service
+    environment:
+      POSTGRES_DB: booking_db
+      POSTGRES_USER: booking_admin
+      POSTGRES_PASSWORD: password123
+    volumes:
+      - pg_booking_data:/var/lib/postgresql/data
+    networks:
+      - airlines-net
+
+  mongo_notification:
+    image: mongo:6.0
+    container_name: db_notification_service
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: notif_admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+    volumes:
+      - mongo_notif_data:/data/db
+    networks:
+      - airlines-net
+
+  # ---------------------------------------------------------------------------
+  # MICROSERVICES
+  # ---------------------------------------------------------------------------
+  
+  # 1. USER SERVICE
+  user_service:
+    build: ./user_service
+    container_name: user_service
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./user_service:/app
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=postgres://user_admin:password123@postgres_user:5432/user_db
+    depends_on:
+      - postgres_user
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.user.rule=PathPrefix(`/api/v1`) || PathPrefix(`/swagger`) || PathPrefix(`/redoc`)"
+      - "traefik.http.services.user.loadbalancer.server.port=8000"
+    networks:
+      - airlines-net
+
+  # 2. FLIGHT SERVICE
+  flight_service:
+    build: ./flight_service
+    container_name: flight_service
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./flight_service:/app
+    environment:
+      - DATABASE_URL=postgres://flight_admin:password123@postgres_flight:5432/flight_db
+    depends_on:
+      - postgres_flight
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flight.rule=PathPrefix(`/api/v1/flights`) || PathPrefix(`/api/v1/locations`)"
+      - "traefik.http.services.flight.loadbalancer.server.port=8000"
+    networks:
+      - airlines-net
+
+  # 3. BOOKING SERVICE
+  booking_service:
+    build: ./booking_service
+    container_name: booking_service
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./booking_service:/app
+    environment:
+      - DATABASE_URL=postgres://booking_admin:password123@postgres_booking:5432/booking_db
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres_booking
+      - rabbitmq
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.booking.rule=PathPrefix(`/api/v1/bookings`)"
+      - "traefik.http.services.booking.loadbalancer.server.port=8000"
+    networks:
+      - airlines-net
+
+  # 4. NOTIFICATION SERVICE
+  notification_service:
+    build: ./notification_service
+    container_name: notification_service
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./notification_service:/app
+    environment:
+      - MONGO_URI=mongodb://notif_admin:password123@mongo_notification:27017/notification_db?authSource=admin
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - mongo_notification
+      - rabbitmq
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.notification.rule=PathPrefix(`/api/v1/notifications`)"
+      - "traefik.http.services.notification.loadbalancer.server.port=8000"
+    networks:
+      - airlines-net
+
+  # ---------------------------------------------------------------------------
+  # FRONTEND
+  # ---------------------------------------------------------------------------
+  frontend:
+    build: ./frontend
+    container_name: react_frontend
+    # In development, we use npm start. In prod, we would use nginx.
+    command: npm start
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:80
+    networks:
+      - airlines-net
+
+networks:
+  airlines-net:
+    driver: bridge
+
+volumes:
+  pg_user_data:
+  pg_flight_data:
+  pg_booking_data:
+  mongo_notif_data:
+  rabbitmq_data:
