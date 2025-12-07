@@ -1,0 +1,81 @@
+{
+  "users": [
+    {
+      "id": "93c3",
+      "firstName": "Kaleb",
+      "lastName": "Demisse",
+      "email": "k@a.c",
+      "password": "string",
+      "role": "client"
+    }
+  ],
+  "locations": [
+    {
+      "id": "1",
+      "name": "JFK Airport",
+      "code": "JFK",
+      "city": "New York",
+      "country": "USA"
+    },
+    {
+      "id": "2",
+      "name": "Heathrow",
+      "code": "LHR",
+      "city": "London",
+      "country": "UK"
+    }
+  ],
+  "flights": [
+    {
+      "id": "1",
+      "flight_number": "AA123",
+      "departure_time": "2023-12-25T10:00",
+      "arrival_time": "2023-12-25T18:00",
+      "total_seats": 100,
+      "available_seats": 96,
+      "price": 500,
+      "departure_location": "JFK",
+      "arrival_location": "LHR"
+    }
+  ],
+  "bookings": [
+    {
+      "id": "bb32",
+      "userId": "93c3",
+      "flightId": "1",
+      "flightDetails": {
+        "id": "1",
+        "flight_number": "AA123",
+        "departure_time": "2023-12-25T10:00",
+        "arrival_time": "2023-12-25T18:00",
+        "total_seats": 100,
+        "available_seats": 98,
+        "price": 500,
+        "departure_location": "JFK",
+        "arrival_location": "LHR"
+      },
+      "passengers": [
+        {
+          "firstName": "Kaleb",
+          "lastName": "Demisse",
+          "email": "k@a.c"
+        },
+        {
+          "firstName": "zxz",
+          "lastName": "zxz",
+          "email": "a@c.c"
+        }
+      ],
+      "bookingDate": "2025-12-06T18:09:06.581Z",
+      "status": "confirmed"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "36b5",
+      "userId": "93c3",
+      "message": "Booked flight AA123 to LHR",
+      "read": false
+    }
+  ]
+}
