@@ -11,6 +11,10 @@ import Register from "./pages/Register";
 import FlightDetails from "./pages/FlightDetails";
 import BookingHistory from "./pages/BookingHistory";
 import AdminDashboard from "./pages/AdminDashboard";
+import FlightsList from "./pages/FlightsList";
+import FlightEdit from "./pages/FlightEdit";
+import AdminBookings from "./pages/AdminBookings";
+import ProfileEdit from "./pages/ProfileEdit";
 
 function App() {
   return (
@@ -29,11 +33,15 @@ function App() {
               {/* Client Protected Routes */}
               <Route element={<ProtectedRoute allowedRoles={['CLIENT', 'ADMIN']} />}>
                 <Route path="/history" element={<BookingHistory />} />
+                <Route path="/profile" element={<ProfileEdit />} />
               </Route>
 
               {/* Admin Protected Routes */}
               <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
                 <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/flights" element={<FlightsList />} />
+                <Route path="/admin/flights/:flightId/edit" element={<FlightEdit />} />
+                <Route path="/admin/bookings" element={<AdminBookings />} />
               </Route>
 
             </Routes>

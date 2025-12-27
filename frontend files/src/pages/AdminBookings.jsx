@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import api from "../api/axios";
 import AuthContext from "../context/AuthContext";
 
-const BookingHistory = () => {
+const AdminBookings = () => {
   const { auth } = useContext(AuthContext);
   const [bookings, setBookings] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -24,7 +24,7 @@ const BookingHistory = () => {
   };
 
   useEffect(() => {
-    if(auth.user) fetchBookings();
+    if(auth.user && auth.user.role === 'ADMIN') fetchBookings();
   }, [auth.user]);
 
   const cancelBooking = async (id) => {
@@ -44,8 +44,8 @@ const BookingHistory = () => {
   return (
     <div className="max-w-6xl mx-auto py-8">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Bookings</h1>
-        <p className="text-gray-600">View and manage your flight reservations</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">All Bookings</h1>
+        <p className="text-gray-600">View and manage all flight reservations</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -54,7 +54,7 @@ const BookingHistory = () => {
           <div className="space-y-3">
             {bookings.map(b => (
               <div
-                key={b.booking_id}
+                key={b.booking_id || b.id || i}
                 onClick={() => {
                   setSelectedBooking(b);
                   fetchFlightDetails(b.flight_id);
@@ -67,7 +67,7 @@ const BookingHistory = () => {
               >
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <p className="font-medium text-gray-900 text-sm">Booking #{b.booking_id.slice(-6)}</p>
+                    <p className="font-medium text-gray-900 text-sm">Booking #{b.booking_id?.slice(-6) || 'N/A'}</p>
                     <p className="text-xs text-gray-500">{new Date(b.booking_date).toLocaleDateString()}</p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -161,4 +161,4 @@ const BookingHistory = () => {
   );
 };
 
-export default BookingHistory;
+export default AdminBookings;
