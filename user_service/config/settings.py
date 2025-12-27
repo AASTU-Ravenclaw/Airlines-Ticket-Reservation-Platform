@@ -9,7 +9,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key')
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['localhost']
 
 APPEND_SLASH = False
 
@@ -33,6 +33,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'users.middleware.HostFixMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
