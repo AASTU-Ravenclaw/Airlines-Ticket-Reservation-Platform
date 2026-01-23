@@ -26,7 +26,7 @@ The application follows a microservices architecture, consisting of multiple ind
 ## Project Structure
 
 ```
-/home/kaleb/school/ravenclaw/project copy (7)/
+./
 ├── booking_service/          # Django app for booking management
 │   ├── bookings/             # App-specific code (models, views, etc.)
 │   ├── config/               # Django settings and configuration

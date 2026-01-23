@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import logging
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -35,7 +34,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
-    'bookings.trace_logging_middleware.TraceHeaderLoggingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

@@ -5,13 +5,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 import datetime
 from opentelemetry.propagate import inject
-import logging
 
 from .models import Booking
 from .serializers import BookingSerializer
 from .producer import publish_event
-
-logger = logging.getLogger(__name__)
 
 
 class BookingViewSet(viewsets.ModelViewSet):
@@ -20,12 +17,6 @@ class BookingViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'delete']  # Exclude PUT and PATCH
 
     def get_queryset(self):
-        logger.info(
-            "Incoming trace headers: traceparent=%s tracestate=%s baggage=%s",
-            self.request.headers.get("traceparent"),
-            self.request.headers.get("tracestate"),
-            self.request.headers.get("baggage"),
-        )
         queryset = Booking.objects.all()
         
         # Filter by user role
@@ -137,10 +128,4 @@ from rest_framework.decorators import api_view
 
 @api_view(['GET'])
 def health_check(request):
-    logger.info(
-        "Incoming trace headers: traceparent=%s tracestate=%s baggage=%s",
-        request.headers.get("traceparent"),
-        request.headers.get("tracestate"),
-        request.headers.get("baggage"),
-    )
     return Response({'status': 'healthy'}, status=status.HTTP_200_OK)
